@@ -1,0 +1,2 @@
+{:paths ["src"]
+ :deps {wing/core {:mvn/version "0.1.4"}}}
