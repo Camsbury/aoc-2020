@@ -13,3 +13,14 @@
          io/resource
          slurp
          str/split-lines)))
+
+(defn get-problem-input-file []
+  (let [[_ day problem]
+        (-> *ns*
+            ns-name
+            str
+            (str/replace "-" "_")
+            (str/split #"\."))]
+    (->> (str day "/" problem)
+         io/resource
+         slurp)))
