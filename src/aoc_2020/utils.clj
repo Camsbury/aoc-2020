@@ -26,3 +26,6 @@
    (get-problem-input-file (get-problem-filename)))
   ([filename]
    (->> filename io/resource slurp)))
+
+(defn abs [x]
+  (max x (- x)))
