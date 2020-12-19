@@ -132,36 +132,12 @@
 ;;; Day 12 - Part I
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; --- Day 12: Rain Risk ---
-
-;; The navigation instructions (your puzzle input) consists of a sequence of single-character actions paired with integer input values. After staring at them for a few minutes, you work out what they probably mean:
-
-;; Action N means to move north by the given value.
-;; Action S means to move south by the given value.
-;; Action E means to move east by the given value.
-;; Action W means to move west by the given value.
-;; Action L means to turn left the given number of degrees.
-;; Action R means to turn right the given number of degrees.
-;; Action F means to move forward by the given value in the direction the ship is currently facing.
-;; The ship starts by facing east. Only the L and R actions change the direction the ship is facing. (That is, if the ship is facing east and the next instruction is N10, the ship would move north 10 units, but would still move east if the following action were F.)
-
 (def example-12
   ["F10"
    "N3"
    "F7"
    "R90"
    "F11"])
-
-;; These instructions would be handled as follows:
-
-;; F10 would move the ship 10 units east (because the ship starts by facing east) to east 10, north 0.
-;; N3 would move the ship 3 units north to east 10, north 3.
-;; F7 would move the ship another 7 units east (because the ship is still facing east) to east 17, north 3.
-;; R90 would cause the ship to turn right by 90 degrees and face south; it remains at east 17, north 3.
-;; F11 would move the ship 11 units south to east 17, south 8.
-;; At the end of these instructions, the ship's Manhattan distance (sum of the absolute values of its east/west position and its north/south position) from its starting position is 17 + 8 = 25.
-
-;; Figure out where the navigation instructions lead. What is the Manhattan distance between that location and the ship's starting position?
 
 (def directions
   [:east :south :west :north])
@@ -181,8 +157,8 @@
    :amount (Integer/parseInt (subs code 1))})
 
 (def init-state
-  {:west->east 0
-   :south->north 0
+  {:east 0
+   :north 0
    :heading :east})
 
 (defn- adjust-heading [heading amount]
@@ -192,13 +168,13 @@
      (mod (+ heading-idx quarter-rots) 4))))
 
 (defn- process-action
-  [{:keys [west->east south->north heading] :as state}
+  [{:keys [east north heading] :as state}
    {:keys [action amount]}]
   (case action
-    :north (update state :south->north #(+ % amount))
-    :south (update state :south->north #(- % amount))
-    :east (update state :west->east #(+ % amount))
-    :west (update state :west->east #(- % amount))
+    :north (update state :north #(+ % amount))
+    :south (update state :north #(- % amount))
+    :east (update state :east #(+ % amount))
+    :west (update state :east #(- % amount))
     :forward (process-action state {:action heading :amount amount})
     :left (update state :heading #(adjust-heading % (- amount)))
     :right (update state :heading #(adjust-heading % amount))))
@@ -210,9 +186,89 @@
   (->> example-12
        (map parse-code)
        final-location
-       (#(+ (utils/abs (:west->east %)) (utils/abs (:south->north %)))))
+       (#(+ (utils/abs (:east %)) (utils/abs (:north %)))))
+
   (->> (utils/get-problem-input "day_12")
        (map parse-code)
        final-location
-       (#(+ (utils/abs (:west->east %)) (utils/abs (:south->north %)))))
-  )
+       (#(+ (utils/abs (:east %)) (utils/abs (:north %))))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Day 12 - Part II
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def init-state-2
+  {:location
+   {:east 0 :north 0}
+   :waypoint
+   {:east 10 :north 1}})
+
+(defn- rotate-waypoint [{:keys [east north] :as wp} amount]
+  (let [quarter-rots (mod (quot amount 90) 4)]
+    (case quarter-rots
+      1 {:east north
+         :north (- east)}
+      2 {:east (- east)
+         :north (- north)}
+      3 {:east (- north)
+         :north east}
+      0 wp)))
+
+(defn- update-location [state amount]
+  (let [[de dn]
+        (->> [:east :north]
+             (map #(get-in state [:waypoint %]))
+             (map #(* % amount)))]
+    (-> state
+        (update-in [:location :north] #(+ % dn))
+        (update-in [:location :east] #(+ % de)))))
+
+(defn- process-action-2
+  [state
+   {:keys [action amount]}]
+  (case action
+    :north   (update-in state [:waypoint :north] #(+ % amount))
+    :south   (update-in state [:waypoint :north] #(- % amount))
+    :east    (update-in state [:waypoint :east]  #(+ % amount))
+    :west    (update-in state [:waypoint :east]  #(- % amount))
+    :left    (update state :waypoint #(rotate-waypoint % (- amount)))
+    :right   (update state :waypoint #(rotate-waypoint % amount))
+    :forward (update-location state amount)))
+
+(defn manhattan-distance [{{:keys [east north]} :location}]
+  (+ (utils/abs east) (utils/abs north)))
+
+(defn final-location-2 [actions]
+  (reduce process-action-2 init-state-2 actions))
+
+(comment
+  (->> example-12
+       (map parse-code)
+       final-location-2
+       manhattan-distance)
+
+  (->> (utils/get-problem-input "day_12")
+       (map parse-code)
+       final-location-2
+       manhattan-distance))
+
+;; Action N means to move the waypoint north by the given value.
+;; Action S means to move the waypoint south by the given value.
+;; Action E means to move the waypoint east by the given value.
+;; Action W means to move the waypoint west by the given value.
+;; Action L means to rotate the waypoint around the ship left (counter-clockwise) the given number of degrees.
+;; Action R means to rotate the waypoint around the ship right (clockwise) the given number of degrees.
+;; Action F means to move forward to the waypoint a number of times equal to the given value.
+;; The waypoint starts 10 units east and 1 unit north relative to the ship. The waypoint is relative to the ship; that is, if the ship moves, the waypoint moves with it.
+
+;; For example, using the same instructions as above:
+
+;; F10 moves the ship to the waypoint 10 times (a total of 100 units east and 10 units north), leaving the ship at east 100, north 10. The waypoint stays 10 units east and 1 unit north of the ship.
+;; N3 moves the waypoint 3 units north to 10 units east and 4 units north of the ship. The ship remains at east 100, north 10.
+;; F7 moves the ship to the waypoint 7 times (a total of 70 units east and 28 units north), leaving the ship at east 170, north 38. The waypoint stays 10 units east and 4 units north of the ship.
+;; R90 rotates the waypoint around the ship clockwise 90 degrees, moving it to 4 units east and 10 units south of the ship. The ship remains at east 170, north 38.
+;; F11 moves the ship to the waypoint 11 times (a total of 44 units east and 110 units south), leaving the ship at east 214, south 72. The waypoint stays 4 units east and 10 units south of the ship.
+;; After these operations, the ship's Manhattan distance from its starting position is 214 + 72 = 286.
+
+;; Figure out where the navigation instructions actually lead. What is the Manhattan distance between that location and the ship's starting position?
