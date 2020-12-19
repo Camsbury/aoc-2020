@@ -1,6 +1,7 @@
 (ns aoc-2020.utils
   (:require [clojure.java.io :as io]
-            [clojure.string  :as str]))
+            [clojure.string  :as str]
+            [clojure.math.numeric-tower :as nt]))
 
 
 (defn- get-problem-filename []
@@ -29,3 +30,6 @@
 
 (defn abs [x]
   (max x (- x)))
+
+(defn lcm [& xs]
+  (reduce nt/lcm 1 xs))
