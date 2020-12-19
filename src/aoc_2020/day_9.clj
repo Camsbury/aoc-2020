@@ -1,0 +1,76 @@
+(ns aoc-2020.day-9
+  (:require [aoc-2020.utils :as utils]
+            [clojure.string :as str]
+            [clojure.walk   :as walk]
+            [clojure.set    :as set]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Part I
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn extract-preamble [preamble-length ns]
+  {:preamble (take preamble-length ns)
+   :n (last ns)})
+
+(defn matching-number? [{:keys [preamble n]}]
+  (->> preamble
+       (map #(- n %))
+       set
+       (set/intersection (set preamble))
+       seq
+       boolean))
+
+(defn extract-weakness [{:keys [preamble-length ns]}]
+  (->> ns
+       (partition (inc preamble-length) 1)
+       (map #(extract-preamble preamble-length %))
+       (remove matching-number?)
+       first
+       :n))
+
+
+(comment
+  (let [preamble-length 5
+        example-numbers [35 20 15 25 47 40
+                         62 55 65 95 102 117
+                         150 182 127 219
+                         299 277 309 576]]
+    (extract-weakness {:preamble-length preamble-length
+                       :ns example-numbers}))
+  ; solution
+  (extract-weakness
+   {:preamble-length 25
+    :ns (map #(Integer/parseInt %)
+             (utils/get-problem-input))}))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Part II
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn get-addends-for-weakness [{:keys [input weakness]}]
+  (loop [sum-queue (clojure.lang.PersistentQueue/EMPTY)
+         total 0
+         remainder input]
+    (case (compare total weakness)
+      0 (into [] sum-queue)
+      -1 (let [n (first remainder)]
+           (recur (conj sum-queue n)
+                  (+ total n)
+                  (rest remainder)))
+      1 (let [removal (peek sum-queue)]
+          (recur (pop sum-queue)
+                 (- total removal)
+                 remainder)))))
+
+;solution
+(comment
+  (let [input (map #(Integer/parseInt %)
+                   (utils/get-problem-input))
+        weakness (extract-weakness
+                  {:preamble-length 25
+                   :ns input})
+        addends
+        (get-addends-for-weakness
+         {:input input
+          :weakness weakness})]
+    (+ (apply min addends) (apply max addends))))
