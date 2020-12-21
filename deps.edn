@@ -1,6 +1,7 @@
 {:paths [:clj-paths :resource-paths]
  :deps {org.clojure/math.combinatorics {:mvn/version "0.1.4"}
         org.clojure/math.numeric-tower {:mvn/version "0.0.4"}
+        instaparse/instaparse          {:mvn/version "1.4.10"}
         wing/core                      {:mvn/version "0.1.4"}}
 
  :aliases
