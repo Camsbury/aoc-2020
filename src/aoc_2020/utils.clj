@@ -33,3 +33,6 @@
 
 (defn lcm [& xs]
   (reduce nt/lcm 1 xs))
+
+(defn transpose [m]
+  (apply mapv vector m))
