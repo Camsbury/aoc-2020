@@ -36,3 +36,8 @@
 
 (defn transpose [m]
   (apply mapv vector m))
+
+(defn n-times
+  "Apply a function n times"
+  [f n]
+  (apply comp (repeat n f)))
